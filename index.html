@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grade 9 GEC Technology — IntrusionGuard: Transistor Terminal Labels</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-alt: #0b1220;
+    --border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --led-off: #334155;
+  }
+  body.light {
+    --bg: #f1f5f9;
+    --panel: #ffffff;
+    --panel-alt: #f8fafc;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0284c7;
+    --led-off: #cbd5e1;
+  }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 1.05rem; }
+  header .grade { color: var(--accent); font-weight: 800; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  button, select {
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button { background: var(--accent); color: #0f172a; border: none; }
+  button.secondary, select {
+    background: var(--panel-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button.spst-closed { background: var(--good); color: #052e16; }
+  button.spst-open { background: var(--bad); color: #ffffff; }
+
+  main {
+    display: grid;
+    grid-template-columns: 1.22fr 0.78fr;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+  }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+  .col { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+  }
+  .card h2 {
+    margin: 0 0 10px 0;
+    font-size: 0.96rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wiring-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+  .legend-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+  .dot-key {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .port-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .port-btn {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+  }
+  .port-btn.selected { outline: 2px solid var(--warn); border-color: var(--warn); }
+  .port-btn.pos { border-color: #ef4444; color: #ef4444; }
+  .port-btn.neg { border-color: #38bdf8; color: #38bdf8; }
+
+  svg#layoutSvg {
+    width: 100%;
+    height: 400px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: block;
+  }
+
+  .alert-box {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--panel-alt);
+  }
+  .alert-box.ok { border-color: var(--good); color: var(--good); }
+  .alert-box.err { border-color: var(--bad); color: var(--bad); }
+  .alert-box.warn { border-color: var(--warn); color: var(--warn); }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .metric {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.79rem;
+  }
+  .metric span { display: block; color: var(--muted); font-size: 0.71rem; }
+  .metric strong { font-size: 0.88rem; }
+
+  .flash-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--led-off);
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .flash-dot.on {
+    background: var(--bad);
+    box-shadow: 0 0 12px var(--bad);
+  }
+
+  .ctrl {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .ctrl-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .mono { font-family: monospace; color: var(--accent); }
+  .hint { font-size: 0.74rem; color: var(--muted); line-height: 1.35; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  .wire-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    font-size: 0.74rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip button { padding: 1px 6px; font-size: 0.68rem; background: var(--bad); color: #fff; }
+  a.ref { color: var(--accent); font-size: 0.8rem; text-decoration: none; font-weight: 600; }
+  a.ref:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="grade">Grade 9 GEC Technology</span> // IntrusionGuard: Transistor Terminals (A) Emitter, (B) Base, (C) Collector</h1>
+  </div>
+  <div class="header-actions">
+    <button id="spstBtn" class="spst-closed">SPST Switch: CLOSED (ON)</button>
+    <button id="soundBtn" class="secondary">Buzzer Audio: ON</button>
+    <button id="resetBtn" class="secondary">Reset Lab</button>
+    <button id="themeBtn" class="secondary">Light / Dark</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>
+        <span>Target Circuit Layout &amp; Transistor Pinout</span>
+        <span class="mono" id="statusBadge">READY</span>
+      </h2>
+
+      <div class="wiring-bar">
+        <div><strong>Battery Leads:</strong> Click 2 terminals to connect/disconnect:</div>
+        <div class="port-pills" id="portPills"></div>
+        <div style="display:flex; gap:6px;">
+          <button id="autoWireBtn" class="secondary">Valid Battery Wiring</button>
+          <button id="clearWireBtn" class="secondary">Clear Battery Wires</button>
+        </div>
+      </div>
+
+      <div class="legend-strip">
+        <span><i class="dot-key" style="background:#ef4444;"></i><strong>Red Dot:</strong> Positive (+V) connection side</span>
+        <span><i class="dot-key" style="background:#38bdf8;"></i><strong>Blue Dot:</strong> Negative (0V / Return) connection side</span>
+      </div>
+
+      <svg id="layoutSvg" viewBox="0 0 840 400" aria-label="Circuit schematic with labeled Emitter, Base, and Collector terminals on NPN transistor">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="840" height="400" fill="url(#grid)" />
+
+        <!-- Left Vertical Backbone (Battery x=115) -->
+        <text x="56" y="182" fill="currentColor" font-size="13" font-weight="800" id="batVoltLabel">+9V</text>
+        <line x1="96" y1="152" x2="134" y2="152" stroke="#ef4444" stroke-width="3.5" />
+        <line x1="104" y1="164" x2="126" y2="164" stroke="#38bdf8" stroke-width="4.5" />
+        <line x1="96" y1="176" x2="134" y2="176" stroke="#ef4444" stroke-width="3.5" />
+        <line x1="104" y1="188" x2="126" y2="188" stroke="#38bdf8" stroke-width="4.5" />
+
+        <!-- Top Rail from SPST Switch across to LDR, 330R LED, and Buzzer -->
+        <line x1="210" y1="56" x2="262" y2="56" stroke="currentColor" stroke-width="2.6" />
+        <circle cx="264" cy="56" r="4" fill="currentColor" />
+        <circle cx="308" cy="56" r="4" fill="currentColor" />
+        <line id="swBlade" x1="264" y1="56" x2="308" y2="56" stroke="#22c55e" stroke-width="3" />
+        <line id="topMainBus" x1="310" y1="56" x2="735" y2="56" stroke="currentColor" stroke-width="2.6" />
+
+        <!-- Bottom Return Bus (y=345) -->
+        <line x1="210" y1="345" x2="615" y2="345" stroke="currentColor" stroke-width="2.6" />
+
+        <!-- Divider Column (x=395): Top LDR -> Mid Node -> Bottom 10k Resistor -->
+        <line x1="395" y1="56" x2="395" y2="95" stroke="currentColor" stroke-width="2.6" />
+        <circle cx="395" cy="128" r="33" fill="none" stroke="#f59e0b" stroke-width="2.4" />
+        <rect x="385" y="106" width="20" height="44" fill="none" stroke="currentColor" stroke-width="2.2" />
+        <text x="330" y="132" fill="#f59e0b" font-size="12" font-weight="800" id="ldrResLabel">10 k&Omega;</text>
+        <line x1="342" y1="84" x2="365" y2="104" stroke="#f59e0b" stroke-width="2" />
+        <polygon points="367,106 359,105 363,99" fill="#f59e0b" />
+        <line x1="354" y1="74" x2="377" y2="94" stroke="#f59e0b" stroke-width="2" />
+        <polygon points="379,96 371,95 375,89" fill="#f59e0b" />
+
+        <line x1="395" y1="161" x2="395" y2="255" stroke="currentColor" stroke-width="2.6" />
+        <circle cx="395" cy="222" r="4.5" fill="currentColor" />
+        <line x1="395" y1="222" x2="588" y2="222" stroke="currentColor" stroke-width="2.6" />
+
+        <rect x="385" y="255" width="20" height="44" fill="none" stroke="currentColor" stroke-width="2.2" />
+        <text x="330" y="281" fill="currentColor" font-size="12" font-weight="800" id="r2Label">10 k&Omega;</text>
+        <line x1="395" y1="299" x2="395" y2="345" stroke="currentColor" stroke-width="2.6" />
+
+        <!-- Right Vertical Load Branch (x=615): 330R + LED in series, Buzzer in parallel, NPN Transistor below -->
+        <line x1="615" y1="56" x2="615" y2="85" stroke="currentColor" stroke-width="2.6" />
+        <rect x="605" y="85" width="20" height="42" fill="none" stroke="currentColor" stroke-width="2.2" />
+        <text x="548" y="110" fill="currentColor" font-size="12" font-weight="800" id="r1Label">330 &Omega;</text>
+        <line x1="615" y1="127" x2="615" y2="146" stroke="currentColor" stroke-width="2.6" />
+
+        <polygon points="602,146 628,146 615,170" fill="none" stroke="currentColor" stroke-width="2.4" />
+        <line x1="601" y1="170" x2="629" y2="170" stroke="currentColor" stroke-width="3" />
+        <line x1="633" y1="151" x2="652" y2="141" stroke="#ef4444" stroke-width="2" />
+        <line x1="635" y1="163" x2="654" y2="153" stroke="#ef4444" stroke-width="2" />
+        <circle id="ledHalo" cx="615" cy="158" r="18" fill="rgba(239,68,68,0)" />
+
+        <line x1="615" y1="170" x2="615" y2="196" stroke="currentColor" stroke-width="2.6" />
+        <circle cx="615" cy="186" r="4.5" fill="currentColor" />
+
+        <!-- Parallel Buzzer on Right (x=735) -->
+        <line x1="615" y1="186" x2="735" y2="186" stroke="currentColor" stroke-width="2.6" />
+        <line x1="735" y1="56" x2="735" y2="104" stroke="currentColor" stroke-width="2.6" />
+        <path d="M 735 104 L 762 92 L 762 152 L 735 140 Z" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+        <path d="M 768 106 Q 778 122 768 138" fill="none" stroke="#f59e0b" stroke-width="2" />
+        <line x1="735" y1="140" x2="735" y2="186" stroke="currentColor" stroke-width="2.6" />
+
+        <!-- NPN Transistor Symbol (center x=615, y=222) -->
+        <circle cx="615" cy="222" r="24" fill="none" stroke="currentColor" stroke-width="2.4" />
+        <line x1="606" y1="208" x2="606" y2="236" stroke="currentColor" stroke-width="3" />
+        <line x1="588" y1="222" x2="606" y2="222" stroke="currentColor" stroke-width="2.6" />
+        <line x1="606" y1="214" x2="615" y2="196" stroke="currentColor" stroke-width="2.4" />
+        <line x1="606" y1="230" x2="615" y2="246" stroke="currentColor" stroke-width="2.4" />
+        <polygon points="615,246 608,243 613,238" fill="currentColor" />
+        <line x1="615" y1="246" x2="615" y2="345" stroke="currentColor" stroke-width="2.6" />
+
+        <!-- Transistor Terminal Labels: (A) Emitter, (B) Base, (C) Collector -->
+        <text x="646" y="200" fill="#f59e0b" font-size="11" font-weight="800">(C) Collector</text>
+        <text x="488" y="212" fill="#f59e0b" font-size="11" font-weight="800">(B) Base</text>
+        <text x="646" y="268" fill="#f59e0b" font-size="11" font-weight="800">(A) Emitter</text>
+
+        <!-- Small Red (+V) and Blue (- / 0V) Endpoint Indicator Circles next to component ending points -->
+        <g id="endpointPolarityMarkers">
+          <circle cx="318" cy="44" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="408" cy="84" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="408" cy="172" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="410" cy="331" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="642" cy="76" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="642" cy="135" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="642" cy="176" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="722" cy="76" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="722" cy="174" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="576" cy="211" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+          <circle cx="630" cy="331" r="5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.2" />
+        </g>
+
+        <g id="wiresLayer"></g>
+        <g id="chargeLayer"></g>
+        <g id="nodesLayer"></g>
+      </svg>
+
+      <div class="alert-box" id="statusBox">Checking layout state...</div>
+      <div class="wire-chips" id="wireChips"></div>
+
+      <div class="metrics-grid">
+        <div class="metric">
+          <span>Exterior Flashing LED</span>
+          <strong><span class="flash-dot" id="ledDot"></span><span id="ledText">OFF</span></strong>
+        </div>
+        <div class="metric">
+          <span>Audible Buzzer</span>
+          <strong id="buzzerText">SILENT</strong>
+        </div>
+        <div class="metric">
+          <span>Transistor Base Drive</span>
+          <strong id="baseDriveText">0.0V (OFF)</strong>
+        </div>
+        <div class="metric">
+          <span>LED Brightness</span>
+          <strong id="brightnessText">0%</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span>Experimental Assessment Tasks for Students</span></h2>
+      <ul class="hint" style="margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px;">
+        <li><strong>Experiment 1 (Transistor Terminals A, B, C):</strong> Trace how signal voltage enters <strong>(B) Base</strong> from the LDR/10k&Omega; divider, switching current from <strong>(C) Collector</strong> out through <strong>(A) Emitter</strong> to the return rail.</li>
+        <li><strong>Experiment 2 (Switch Control on Supply):</strong> With the alarm active, open the <code>SPST Switch</code> and verify that both the flashing LED and buzzer turn OFF immediately.</li>
+        <li><strong>Experiment 3 (Series Resistor R1 Effect):</strong> Change the LED series resistor between <code>100 &Omega;</code>, <code>330 &Omega;</code>, and <code>1 k&Omega;</code> while keeping light above threshold; explain how R1 affects LED brightness.</li>
+        <li><strong>Experiment 4 (Battery Wiring &amp; Polarity Faults):</strong> Disconnect or reverse a battery lead and record which symptoms appear in the status bar and charge flow.</li>
+      </ul>
+    </section>
+  </div>
+
+  <aside class="card">
+    <h2><span>Simulation &amp; Component Controls</span></h2>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="lightSlider">Light on LDR</label>
+        <span class="mono" id="lightVal">75%</span>
+      </div>
+      <input id="lightSlider" type="range" min="0" max="100" value="75" />
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="threshSlider">Trigger Threshold</label>
+        <span class="mono" id="threshVal">55%</span>
+      </div>
+      <input id="threshSlider" type="range" min="20" max="90" value="55" />
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="flashHzSlider">LED Flash Rate</label>
+        <span class="mono" id="flashHzVal">2.0 Hz</span>
+      </div>
+      <input id="flashHzSlider" type="range" min="1" max="5" step="0.5" value="2" />
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="r1Select">LED Series Resistor</label>
+      </div>
+      <select id="r1Select" style="width:100%;">
+        <option value="100">100 &Omega; (Bright LED)</option>
+        <option value="330" selected>330 &Omega; (Layout Standard)</option>
+        <option value="1000">1 k&Omega; (Dimmer LED)</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="r2Select">Lower Divider Resistor</label>
+      </div>
+      <select id="r2Select" style="width:100%;">
+        <option value="4700">4.7 k&Omega;</option>
+        <option value="10000" selected>10 k&Omega; (Layout Standard)</option>
+        <option value="47000">47 k&Omega;</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="battSelect">Battery Supply (&le; 9V Max)</label>
+      </div>
+      <select id="battSelect" style="width:100%;">
+        <option value="9.0" selected>+9V Battery (Layout Standard)</option>
+        <option value="6.0">6.0V Pack (4x AA)</option>
+        <option value="4.5">4.5V Pack (3x AA)</option>
+        <option value="3.0">3.0V Depleted</option>
+      </select>
+    </div>
+
+    <div style="margin-top: 8px;">
+      <a class="ref" href="https://en.wikipedia.org/wiki/Bipolar_junction_transistor" target="_blank" rel="noopener">
+        Reference: Bipolar Junction Transistor (NPN) ↗
+      </a>
+    </div>
+  </aside>
+</main>
+
+<script>
+const PORTS = [
+  { id: 'bat_pos', label: 'Battery (+)', x: 134, y: 152, color: '#ef4444' },
+  { id: 'bat_neg', label: 'Battery (-)', x: 126, y: 188, color: '#38bdf8' },
+  { id: 'top_bus', label: 'Top Supply Line', x: 210, y: 56, color: '#ef4444' },
+  { id: 'bot_bus', label: 'Bottom Return Line', x: 210, y: 345, color: '#38bdf8' },
+];
+
+let wires = [
+  { from: 'bat_pos', to: 'top_bus' },
+  { from: 'bat_neg', to: 'bot_bus' },
+];
+
+let selectedPort = null;
+let spstClosed = true;
+let audioEnabled = true;
+let flashState = false;
+let chargePhase = 0;
+let lastToggle = performance.now();
+let lastBeep = 0;
+let audioCtx = null;
+
+const el = {
+  spstBtn: document.getElementById('spstBtn'),
+  soundBtn: document.getElementById('soundBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  themeBtn: document.getElementById('themeBtn'),
+  autoWireBtn: document.getElementById('autoWireBtn'),
+  clearWireBtn: document.getElementById('clearWireBtn'),
+  portPills: document.getElementById('portPills'),
+  wireChips: document.getElementById('wireChips'),
+  wiresLayer: document.getElementById('wiresLayer'),
+  chargeLayer: document.getElementById('chargeLayer'),
+  nodesLayer: document.getElementById('nodesLayer'),
+  swBlade: document.getElementById('swBlade'),
+  ledHalo: document.getElementById('ledHalo'),
+  statusBadge: document.getElementById('statusBadge'),
+  statusBox: document.getElementById('statusBox'),
+  ledDot: document.getElementById('ledDot'),
+  ledText: document.getElementById('ledText'),
+  buzzerText: document.getElementById('buzzerText'),
+  baseDriveText: document.getElementById('baseDriveText'),
+  brightnessText: document.getElementById('brightnessText'),
+  batVoltLabel: document.getElementById('batVoltLabel'),
+  r1Label: document.getElementById('r1Label'),
+  r2Label: document.getElementById('r2Label'),
+  lightSlider: document.getElementById('lightSlider'),
+  threshSlider: document.getElementById('threshSlider'),
+  flashHzSlider: document.getElementById('flashHzSlider'),
+  r1Select: document.getElementById('r1Select'),
+  r2Select: document.getElementById('r2Select'),
+  battSelect: document.getElementById('battSelect'),
+};
+
+function getPort(id) {
+  return PORTS.find((p) => p.id === id);
+}
+
+function togglePort(id) {
+  if (!selectedPort) {
+    selectedPort = id;
+    renderPortPills();
+    return;
+  }
+  if (selectedPort === id) {
+    selectedPort = null;
+    renderPortPills();
+    return;
+  }
+  const idx = wires.findIndex(
+    (w) => (w.from === selectedPort && w.to === id) || (w.from === id && w.to === selectedPort)
+  );
+  if (idx >= 0) wires.splice(idx, 1);
+  else wires.push({ from: selectedPort, to: id });
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+}
+
+function renderPortPills() {
+  el.portPills.innerHTML = '';
+  PORTS.forEach((p) => {
+    const b = document.createElement('button');
+    b.className = `port-btn ${p.id.includes('pos') || p.id.includes('top') ? 'pos' : 'neg'} ${selectedPort === p.id ? 'selected' : ''}`;
+    b.textContent = p.label;
+    b.addEventListener('click', () => togglePort(p.id));
+    el.portPills.appendChild(b);
+  });
+}
+
+function renderWireChips() {
+  el.wireChips.innerHTML = '';
+  if (wires.length === 0) {
+    el.wireChips.innerHTML = '<span class="hint">No battery wires connected.</span>';
+    return;
+  }
+  wires.forEach((w, idx) => {
+    const a = getPort(w.from);
+    const b = getPort(w.to);
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${a.label} &harr; ${b.label}`;
+    const rm = document.createElement('button');
+    rm.textContent = 'x';
+    rm.addEventListener('click', () => {
+      wires.splice(idx, 1);
+      renderAll();
+    });
+    chip.appendChild(rm);
+    el.wireChips.appendChild(chip);
+  });
+}
+
+function beep() {
+  if (!audioEnabled) return;
+  const now = performance.now();
+  if (now - lastBeep < 350) return;
+  lastBeep = now;
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.045, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.13);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.14);
+  } catch (_) {}
+}
+
+function checkWires() {
+  const linked = (u, v) =>
+    wires.some((w) => (w.from === u && w.to === v) || (w.from === v && w.to === u));
+  const okTop = linked('bat_pos', 'top_bus');
+  const okBot = linked('bat_neg', 'bot_bus');
+  const rev = linked('bat_pos', 'bot_bus') || linked('bat_neg', 'top_bus');
+
+  if (rev) {
+    return { valid: false, badge: 'REVERSED WIRES', cls: 'err', msg: 'Reversed battery polarity! Wire Battery (+) to Top Supply Line and Battery (-) to Bottom Return Line.' };
+  }
+  if (!okTop && !okBot) {
+    return { valid: false, badge: 'NO BATTERY WIRES', cls: 'warn', msg: 'Connect Battery (+) to Top Supply Line and Battery (-) to Bottom Return Line.' };
+  }
+  if (!okTop) {
+    return { valid: false, badge: 'MISSING + WIRE', cls: 'warn', msg: 'Connect Battery (+) to Top Supply Line.' };
+  }
+  if (!okBot) {
+    return { valid: false, badge: 'MISSING - WIRE', cls: 'warn', msg: 'Connect Battery (-) to Bottom Return Line.' };
+  }
+  return { valid: true, badge: 'WIRING VALID', cls: 'ok', msg: 'Valid battery wiring in target layout. Close SPST switch and shine light on LDR to trigger alarm.' };
+}
+
+function renderAll() {
+  renderWireChips();
+
+  const light = Number(el.lightSlider.value);
+  const thresh = Number(el.threshSlider.value);
+  const hz = Number(el.flashHzSlider.value);
+  const r1 = Number(el.r1Select.value);
+  const r2 = Number(el.r2Select.value);
+  const volts = Number(el.battSelect.value);
+
+  document.getElementById('lightVal').textContent = `${light}%`;
+  document.getElementById('threshVal').textContent = `${thresh}%`;
+  document.getElementById('flashHzVal').textContent = `${hz.toFixed(1)} Hz`;
+
+  el.batVoltLabel.textContent = `+${volts.toFixed(volts % 1 === 0 ? 0 : 1)}V`;
+  el.r1Label.textContent = r1 >= 1000 ? '1 k\u03A9' : `${r1} \u03A9`;
+  el.r2Label.textContent = r2 >= 1000 ? `${Math.round(r2 / 1000)} k\u03A9` : `${r2} \u03A9`;
+
+  if (spstClosed) {
+    el.swBlade.setAttribute('x1', '264');
+    el.swBlade.setAttribute('y1', '56');
+    el.swBlade.setAttribute('x2', '308');
+    el.swBlade.setAttribute('y2', '56');
+    el.swBlade.setAttribute('stroke', '#22c55e');
+    el.spstBtn.textContent = 'SPST Switch: CLOSED (ON)';
+    el.spstBtn.className = 'spst-closed';
+  } else {
+    el.swBlade.setAttribute('x1', '264');
+    el.swBlade.setAttribute('y1', '56');
+    el.swBlade.setAttribute('x2', '304');
+    el.swBlade.setAttribute('y2', '35');
+    el.swBlade.setAttribute('stroke', '#ef4444');
+    el.spstBtn.textContent = 'SPST Switch: OPEN (OFF)';
+    el.spstBtn.className = 'spst-open';
+  }
+
+  const wireState = checkWires();
+  const powerOk = volts >= 4.5 && volts <= 9.0;
+  const railLive = wireState.valid && spstClosed && powerOk;
+
+  const shift = r2 <= 4700 ? 6 : r2 >= 47000 ? -6 : 0;
+  const effThresh = Math.max(10, Math.min(95, thresh + shift));
+  const transistorOn = railLive && light >= effThresh;
+
+  const estBaseV = railLive ? ((light / 100) * volts * 0.65).toFixed(1) : '0.0';
+  el.baseDriveText.textContent = `${estBaseV}V (${transistorOn ? 'ON' : 'OFF'})`;
+
+  const brightness = transistorOn
+    ? Math.max(20, Math.min(100, Math.round((volts / 9.0) * (330 / r1) * 85)))
+    : 0;
+  el.brightnessText.textContent = `${brightness}%`;
+
+  if (!wireState.valid) {
+    el.statusBadge.textContent = wireState.badge;
+    el.statusBox.className = `alert-box ${wireState.cls}`;
+    el.statusBox.textContent = wireState.msg;
+  } else if (!spstClosed) {
+    el.statusBadge.textContent = 'SWITCH OPEN';
+    el.statusBox.className = 'alert-box warn';
+    el.statusBox.textContent = 'SPST Switch is OPEN: top supply rail is disconnected, so the LED and buzzer cannot operate.';
+  } else if (!powerOk) {
+    el.statusBadge.textContent = 'LOW VOLTAGE';
+    el.statusBox.className = 'alert-box err';
+    el.statusBox.textContent = 'Battery voltage is too low to reliably drive the transistor and alarm outputs.';
+  } else if (transistorOn) {
+    el.statusBadge.textContent = 'ALARM TRIGGERED';
+    el.statusBox.className = 'alert-box err';
+    el.statusBox.textContent = `Light (${light}%) >= Trigger (${effThresh}%): NPN transistor ON, driving flashing LED and buzzer together!`;
+  } else {
+    el.statusBadge.textContent = 'STANDBY (ARMED)';
+    el.statusBox.className = 'alert-box ok';
+    el.statusBox.textContent = `Circuit armed. Increase LDR light above ${effThresh}% to turn ON the transistor and sound/flash the alarm.`;
+  }
+
+  if (transistorOn) {
+    el.ledDot.classList.toggle('on', flashState);
+    el.ledText.textContent = flashState ? `FLASHING (${brightness}%)` : 'FLASH PAUSE';
+    el.buzzerText.textContent = 'SOUNDING';
+    el.ledHalo.setAttribute('fill', flashState ? `rgba(239,68,68,${((brightness / 100) * 0.5).toFixed(2)})` : 'rgba(239,68,68,0.04)');
+    if (flashState) beep();
+  } else {
+    el.ledDot.classList.remove('on');
+    el.ledText.textContent = !spstClosed ? 'OFF (OPEN)' : 'OFF';
+    el.buzzerText.textContent = !spstClosed ? 'OFF (OPEN)' : 'SILENT';
+    el.ledHalo.setAttribute('fill', 'rgba(239,68,68,0)');
+  }
+
+  el.wiresLayer.innerHTML = '';
+  el.chargeLayer.innerHTML = '';
+  el.nodesLayer.innerHTML = '';
+
+  wires.forEach((w) => {
+    const p1 = getPort(w.from);
+    const p2 = getPort(w.to);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+    line.setAttribute('stroke', p1.color);
+    line.setAttribute('stroke-width', '4');
+    el.wiresLayer.appendChild(line);
+
+    if (wireState.valid && powerOk && spstClosed) {
+      for (let i = 0; i < 4; i++) {
+        const t = (chargePhase + i * 0.25) % 1;
+        const cx = p1.x + (p2.x - p1.x) * t;
+        const cy = p1.y + (p2.y - p1.y) * t;
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', cx);
+        c.setAttribute('cy', cy);
+        c.setAttribute('r', '4.2');
+        c.setAttribute('fill', '#facc15');
+        el.chargeLayer.appendChild(c);
+      }
+    }
+  });
+
+  if (transistorOn) {
+    for (let i = 0; i < 5; i++) {
+      const t = (chargePhase + i * 0.2) % 1;
+      const cx = 310 + (615 - 310) * t;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', cx);
+      c.setAttribute('cy', 56);
+      c.setAttribute('r', '3.8');
+      c.setAttribute('fill', '#ef4444');
+      el.chargeLayer.appendChild(c);
+    }
+  }
+
+  PORTS.forEach((p) => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', selectedPort === p.id ? '9' : '7');
+    circle.setAttribute('fill', p.color);
+    circle.setAttribute('stroke', selectedPort === p.id ? '#facc15' : '#ffffff');
+    circle.setAttribute('stroke-width', '2.5');
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('click', () => togglePort(p.id));
+    el.nodesLayer.appendChild(circle);
+  });
+}
+
+function loop(now) {
+  const hz = Number(el.flashHzSlider.value);
+  const halfPeriod = 1000 / (hz * 2);
+  if (now - lastToggle >= halfPeriod) {
+    flashState = !flashState;
+    lastToggle = now;
+  }
+  chargePhase = (chargePhase + 0.015) % 1;
+  renderAll();
+  requestAnimationFrame(loop);
+}
+
+el.spstBtn.addEventListener('click', () => {
+  spstClosed = !spstClosed;
+  renderAll();
+});
+
+el.soundBtn.addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  el.soundBtn.textContent = `Buzzer Audio: ${audioEnabled ? 'ON' : 'OFF'}`;
+});
+
+el.autoWireBtn.addEventListener('click', () => {
+  wires = [
+    { from: 'bat_pos', to: 'top_bus' },
+    { from: 'bat_neg', to: 'bot_bus' },
+  ];
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+});
+
+el.clearWireBtn.addEventListener('click', () => {
+  wires = [];
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+});
+
+el.resetBtn.addEventListener('click', () => {
+  wires = [
+    { from: 'bat_pos', to: 'top_bus' },
+    { from: 'bat_neg', to: 'bot_bus' },
+  ];
+  selectedPort = null;
+  spstClosed = true;
+  el.lightSlider.value = 75;
+  el.threshSlider.value = 55;
+  el.flashHzSlider.value = 2;
+  el.r1Select.value = '330';
+  el.r2Select.value = '10000';
+  el.battSelect.value = '9.0';
+  renderPortPills();
+  renderAll();
+});
+
+el.themeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  renderAll();
+});
+
+[el.lightSlider, el.threshSlider, el.flashHzSlider, el.r1Select, el.r2Select, el.battSelect].forEach((ctrl) =>
+  ctrl.addEventListener('input', renderAll)
+);
+
+renderPortPills();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

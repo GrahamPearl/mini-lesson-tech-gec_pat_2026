@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grade 9 GEC Technology — IntrusionGuard: LDR Alarm Simulator</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-alt: #0b1220;
+    --border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --led-off: #334155;
+  }
+  body.light {
+    --bg: #f1f5f9;
+    --panel: #ffffff;
+    --panel-alt: #f8fafc;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0284c7;
+    --led-off: #cbd5e1;
+  }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 1.08rem; }
+  header .grade { color: var(--accent); font-weight: 800; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  button, select {
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button {
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+  }
+  button.secondary, select {
+    background: var(--panel-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button.spst-on {
+    background: var(--good);
+    color: #052e16;
+  }
+  button.spst-off {
+    background: var(--bad);
+    color: #ffffff;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+  }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+
+  .col { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+  }
+  .card h2 {
+    margin: 0 0 10px 0;
+    font-size: 0.98rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Scale Model Stage */
+  .stage {
+    position: relative;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    min-height: 310px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .torch-beam {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(245, 158, 11, 0.16);
+    color: var(--warn);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+  }
+  .enclosure-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    margin: 22px 0 10px;
+  }
+
+  /* Housing Box (Cardboard vs Recycled Plastic) */
+  .housing {
+    position: relative;
+    width: 310px;
+    min-height: 195px;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .housing.cardboard {
+    background: #b47b44;
+    color: #1e1308;
+    border: 3px dashed #7c4d21;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18);
+  }
+  .housing.plastic {
+    background: rgba(56, 189, 248, 0.16);
+    color: var(--text);
+    border: 3px solid var(--accent);
+  }
+  .housing-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.9;
+  }
+
+  /* Exterior LDR mounted visibly on outside left wall */
+  .ext-ldr {
+    position: absolute;
+    left: -16px;
+    top: 46%;
+    transform: translateY(-50%);
+    background: var(--panel);
+    color: var(--text);
+    border: 2px solid var(--warn);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+
+  /* Exterior Flashing LED mounted visibly on outside top/front */
+  .ext-led-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+  .flash-led {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--led-off);
+    border: 2px solid #94a3b8;
+  }
+  .flash-led.flashing {
+    background: var(--bad);
+    border-color: #fecaca;
+    box-shadow: 0 0 16px var(--bad), 0 0 28px var(--bad);
+  }
+
+  /* Buzzer & Battery Bay indicators */
+  .internal-sub {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 0.74rem;
+  }
+  .sub-box {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.72);
+    color: #f8fafc;
+    padding: 7px 8px;
+    border-radius: 7px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+  }
+  .buzzer-active {
+    border-color: var(--warn) !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.55);
+  }
+
+  .status-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .status-tile {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+  .status-tile span { display: block; color: var(--muted); font-size: 0.72rem; }
+  .status-tile strong { font-size: 0.9rem; }
+
+  /* Controls */
+  .ctrl {
+    margin-bottom: 13px;
+    padding-bottom: 11px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .ctrl-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+  }
+  .mono { font-family: monospace; color: var(--accent); }
+  .hint { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  /* Assessment Prompts */
+  .prompt-card {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 12px;
+    margin-bottom: 10px;
+  }
+  .prompt-card:last-child { margin-bottom: 0; }
+  .prompt-q { font-size: 0.84rem; font-weight: 600; margin-bottom: 6px; line-height: 1.38; }
+  .prompt-check {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  a.ref {
+    color: var(--accent);
+    font-size: 0.8rem;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  a.ref:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="grade">Grade 9 GEC Technology</span> // IntrusionGuard: LDR Alarm Simulator</h1>
+  </div>
+  <div class="header-actions">
+    <button id="spstBtn" class="spst-on" title="Master SPST Power Switch">SPST Master: ON</button>
+    <button id="soundBtn" class="secondary">Buzzer Audio: ON</button>
+    <button id="resetBtn" class="secondary">Reset Scenario</button>
+    <button id="themeBtn" class="secondary">Light / Dark</button>
+  </div>
+</header>
+
+<main>
+  <!-- Left Column: Scale Model Prototype & Assessment Prompts -->
+  <div class="col">
+    <section class="card">
+      <h2>
+        <span>Scale Model Prototype (Option 1: Intrusion Detection)</span>
+        <span class="mono" id="alarmBanner">SYSTEM STANDBY</span>
+      </h2>
+
+      <div class="stage" id="simStage">
+        <div class="torch-beam" id="torchBadge">Exterior Light: 25% (Dim / Night Patrol)</div>
+
+        <div class="enclosure-row">
+          <div class="housing cardboard" id="housingBox">
+            <div class="ext-ldr" id="ldrBadge">
+              EXT LDR<br />
+              <span class="mono" id="ldrValText">25%</span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span class="housing-tag" id="housingLabel">Cardboard Box Housing</span>
+              <div class="ext-led-wrap">
+                <div class="flash-led" id="extLed"></div>
+                <span id="ledStatusLabel">EXT LED: OFF</span>
+              </div>
+            </div>
+
+            <div class="internal-sub">
+              <div class="sub-box" id="buzzerBox">
+                <strong>Buzzer:</strong> <span id="buzzerLabel">SILENT</span>
+              </div>
+              <div class="sub-box" id="battBox">
+                <strong>Power:</strong> <span id="battLabel">9.0V (OK)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hint" id="designSummary">
+          SPST switch controls main power (&le;9V). Exterior LDR detects light intrusion; exterior LED flashes while buzzer sounds simultaneously.
+        </div>
+      </div>
+
+      <div class="status-strip">
+        <div class="status-tile"><span>Master SPST</span><strong id="stSpst">CLOSED (ON)</strong></div>
+        <div class="status-tile"><span>LDR vs. Threshold</span><strong id="stComp">25% &lt; 65%</strong></div>
+        <div class="status-tile"><span>Visual + Audible</span><strong id="stOutputs">Inactive</strong></div>
+        <div class="status-tile"><span>Battery Bay Access</span><strong id="stBay">Easy-Swap Hatch</strong></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>
+        <span>Grade 9 Assessment Prompts &amp; Concept Check</span>
+        <span class="mono" id="checkProgress">0 / 4 Checked</span>
+      </h2>
+
+      <div class="prompt-card">
+        <div class="prompt-q">1. <strong>Exterior LDR &amp; Threshold:</strong> Why must the LDR sit on the outside of the housing, and what happens when torchlight pushes light above your threshold?</div>
+        <label class="prompt-check"><input type="checkbox" class="assess-chk" /> I tested light below and above the threshold and can explain the trigger rule.</label>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-q">2. <strong>Simultaneous Flashing LED + Buzzer:</strong> Why does the system flash an exterior LED at the same time the buzzer sounds instead of using sound alone?</div>
+        <label class="prompt-check"><input type="checkbox" class="assess-chk" /> I can explain how simultaneous flashing light and sound alert people with different abilities and deter intruders.</label>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-q">3. <strong>Master SPST Switch &amp; &le;9V Easy Battery Replacement:</strong> How does the SPST switch isolate the circuit, and why keep power at or below 9V with easy battery access?</div>
+        <label class="prompt-check"><input type="checkbox" class="assess-chk" /> I tested SPST OFF vs. ON and checked 9V safety and easy battery replacement.</label>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-q">4. <strong>Recycled / Low-Cost Housing Trade-Offs:</strong> Compare cardboard vs. a recycled plastic container—what is one benefit and one risk in a real scale model?</div>
+        <label class="prompt-check"><input type="checkbox" class="assess-chk" /> I identified a practical advantage and risk of using recycled/low-cost housing materials.</label>
+      </div>
+    </section>
+  </div>
+
+  <!-- Right Column: Hardware & Environment Controls -->
+  <aside class="card">
+    <h2><span>Prototype &amp; Test Controls</span></h2>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="lightSlider">Light Falling on Exterior LDR</label>
+        <span class="mono" id="lightVal">25%</span>
+      </div>
+      <input id="lightSlider" type="range" min="0" max="100" value="25" />
+      <div class="hint">Simulates dark room/night (0–30%), indoor light (35–60%), or a flashlight/torch beam (65–100%).</div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="threshSlider">Intrusion Trigger Threshold</label>
+        <span class="mono" id="threshVal">65%</span>
+      </div>
+      <input id="threshSlider" type="range" min="20" max="90" value="65" />
+      <div class="hint">Light level at or above which the alarm trips (when SPST is ON and power is valid).</div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="batterySelect">Battery Pack (Max 9V Safe Limit)</label>
+      </div>
+      <select id="batterySelect" style="width:100%;">
+        <option value="9.0">9V Battery Pack (9.0V — Max Safe Limit)</option>
+        <option value="6.0">4x AA Pack (6.0V — Portable Safe)</option>
+        <option value="4.5">3x AA Pack (4.5V — Low-Voltage Safe)</option>
+        <option value="3.2">Weak / Depleted Battery (3.2V — Underpowered)</option>
+      </select>
+      <div class="hint">Portable safe supply capped at 9V. Depleted voltage prevents reliable buzzer/LED output.</div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="baySelect">Battery Bay Replacement Design</label>
+      </div>
+      <select id="baySelect" style="width:100%;">
+        <option value="easy">Easy-Access Slide/Snap Hatch (Recommended)</option>
+        <option value="trapped">Glued / Trapped Inside Housing (Poor Serviceability)</option>
+      </select>
+      <div class="hint">Batteries should be replaceable easily without damaging the recycled housing.</div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="housingSelect">Recycled / Low-Cost Housing</label>
+      </div>
+      <select id="housingSelect" style="width:100%;">
+        <option value="cardboard">Recycled Cardboard Box (Low-Cost)</option>
+        <option value="plastic">Recycled Plastic Container (Moisture-Resistant)</option>
+      </select>
+      <div class="hint">Low-cost or recycled container to keep prototype costs down.</div>
+    </div>
+
+    <div style="margin-top: 8px;">
+      <a class="ref" href="https://en.wikipedia.org/wiki/Photoresistor" target="_blank" rel="noopener">
+        Reference: Light-Dependent Resistor (Photoresistor) ↗
+      </a>
+    </div>
+  </aside>
+</main>
+
+<script>
+const el = {
+  spstBtn: document.getElementById('spstBtn'),
+  soundBtn: document.getElementById('soundBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  themeBtn: document.getElementById('themeBtn'),
+  lightSlider: document.getElementById('lightSlider'),
+  threshSlider: document.getElementById('threshSlider'),
+  batterySelect: document.getElementById('batterySelect'),
+  baySelect: document.getElementById('baySelect'),
+  housingSelect: document.getElementById('housingSelect'),
+  simStage: document.getElementById('simStage'),
+  torchBadge: document.getElementById('torchBadge'),
+  housingBox: document.getElementById('housingBox'),
+  housingLabel: document.getElementById('housingLabel'),
+  ldrValText: document.getElementById('ldrValText'),
+  extLed: document.getElementById('extLed'),
+  ledStatusLabel: document.getElementById('ledStatusLabel'),
+  buzzerBox: document.getElementById('buzzerBox'),
+  buzzerLabel: document.getElementById('buzzerLabel'),
+  battBox: document.getElementById('battBox'),
+  battLabel: document.getElementById('battLabel'),
+  alarmBanner: document.getElementById('alarmBanner'),
+  designSummary: document.getElementById('designSummary'),
+  stSpst: document.getElementById('stSpst'),
+  stComp: document.getElementById('stComp'),
+  stOutputs: document.getElementById('stOutputs'),
+  stBay: document.getElementById('stBay'),
+  checkProgress: document.getElementById('checkProgress'),
+};
+
+let spstOn = true;
+let audioEnabled = true;
+let flashState = false;
+let audioCtx = null;
+let lastBeepTime = 0;
+
+function playBuzzerPulse() {
+  if (!audioEnabled) return;
+  const nowMs = performance.now();
+  if (nowMs - lastBeepTime < 340) return;
+  lastBeepTime = nowMs;
+
+  try {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.14);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (_) {
+    // Audio blocked or unsupported; visual alarm still runs
+  }
+}
+
+function renderState() {
+  const light = Number(el.lightSlider.value);
+  const thresh = Number(el.threshSlider.value);
+  const voltage = Number(el.batterySelect.value);
+  const bay = el.baySelect.value;
+  const housing = el.housingSelect.value;
+
+  document.getElementById('lightVal').textContent = `${light}%`;
+  document.getElementById('threshVal').textContent = `${thresh}%`;
+  el.ldrValText.textContent = `${light}%`;
+
+  // Housing style
+  el.housingBox.className = `housing ${housing}`;
+  el.housingLabel.textContent = housing === 'cardboard' ? 'Cardboard Box Housing' : 'Recycled Plastic Housing';
+
+  // Stage brightness tint
+  const dimFactor = Math.max(0.18, Math.min(1, light / 100));
+  el.simStage.style.backgroundColor = document.body.classList.contains('light')
+    ? `rgba(226, 232, 240, ${0.4 + dimFactor * 0.6})`
+    : `rgba(11, 18, 32, ${1.15 - dimFactor * 0.55})`;
+
+  el.torchBadge.textContent =
+    light >= 65
+      ? `Exterior Light: ${light}% (Bright Torch / Intrusion Beam)`
+      : light >= 35
+      ? `Exterior Light: ${light}% (Ambient Room Light)`
+      : `Exterior Light: ${light}% (Dark / Night Condition)`;
+
+  // SPST & Power evaluation
+  el.spstBtn.textContent = spstOn ? 'SPST Master: ON' : 'SPST Master: OFF';
+  el.spstBtn.className = spstOn ? 'spst-on' : 'spst-off';
+  el.stSpst.textContent = spstOn ? 'CLOSED (ON)' : 'OPEN (OFF)';
+
+  const powerOk = voltage >= 4.5 && voltage <= 9.0;
+  el.battLabel.textContent = powerOk ? `${voltage.toFixed(1)}V (Safe <=9V)` : `${voltage.toFixed(1)}V (Low Power)`;
+  el.battBox.style.borderColor = powerOk ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.7)';
+
+  el.stBay.textContent = bay === 'easy' ? 'Easy-Swap Hatch' : 'Trapped (Hard to Swap)';
+  el.stComp.textContent = `${light}% ${light >= thresh ? '>=' : '<'} ${thresh}%`;
+
+  const intrusionTriggered = spstOn && powerOk && light >= thresh;
+
+  if (!spstOn) {
+    el.alarmBanner.textContent = 'POWER ISOLATED (SPST OFF)';
+    el.alarmBanner.style.color = 'var(--bad)';
+    el.stOutputs.textContent = 'Isolated (Off)';
+    el.buzzerLabel.textContent = 'OFF (Isolated)';
+    el.buzzerBox.classList.remove('buzzer-active');
+    el.extLed.classList.remove('flashing');
+    el.ledStatusLabel.textContent = 'EXT LED: OFF';
+  } else if (!powerOk) {
+    el.alarmBanner.textContent = 'LOW BATTERY — REPLACE PACK';
+    el.alarmBanner.style.color = 'var(--warn)';
+    el.stOutputs.textContent = 'Insufficient Voltage';
+    el.buzzerLabel.textContent = 'WEAK / OFF';
+    el.buzzerBox.classList.remove('buzzer-active');
+    el.extLed.classList.remove('flashing');
+    el.ledStatusLabel.textContent = 'EXT LED: DIM/OFF';
+  } else if (intrusionTriggered) {
+    el.alarmBanner.textContent = 'INTRUSION ALARM ACTIVE!';
+    el.alarmBanner.style.color = 'var(--bad)';
+    el.stOutputs.textContent = 'LED Flashing + Buzzer ON';
+    el.buzzerLabel.textContent = 'SOUNDING ALARM';
+    el.buzzerBox.classList.add('buzzer-active');
+    el.extLed.classList.toggle('flashing', flashState);
+    el.ledStatusLabel.textContent = flashState ? 'EXT LED: FLASH ON' : 'EXT LED: FLASH OFF';
+    if (flashState) playBuzzerPulse();
+  } else {
+    el.alarmBanner.textContent = 'ARMED — MONITORING LDR';
+    el.alarmBanner.style.color = 'var(--good)';
+    el.stOutputs.textContent = 'Standby (Armed)';
+    el.buzzerLabel.textContent = 'SILENT';
+    el.buzzerBox.classList.remove('buzzer-active');
+    el.extLed.classList.remove('flashing');
+    el.ledStatusLabel.textContent = 'EXT LED: STANDBY';
+  }
+
+  const housingTip =
+    housing === 'cardboard'
+      ? 'Cardboard is cheap and easy to cut, but vulnerable to moisture.'
+      : 'Recycled plastic resists moisture well, though cutting clean sensor mounts takes care.';
+  const bayTip =
+    bay === 'easy'
+      ? 'Battery pack sits in an accessible hatch for quick replacement.'
+      : 'Warning: battery pack is hard to reach for quick replacement.';
+
+  el.designSummary.textContent = `${housingTip} ${bayTip}`;
+}
+
+function updateChecks() {
+  const boxes = Array.from(document.querySelectorAll('.assess-chk'));
+  const count = boxes.filter((b) => b.checked).length;
+  el.checkProgress.textContent = `${count} / ${boxes.length} Checked`;
+}
+
+// Flash timer (250ms half-period = 2 Hz clear visual flash)
+setInterval(() => {
+  flashState = !flashState;
+  renderState();
+}, 250);
+
+el.spstBtn.addEventListener('click', () => {
+  spstOn = !spstOn;
+  renderState();
+});
+
+el.soundBtn.addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  el.soundBtn.textContent = `Buzzer Audio: ${audioEnabled ? 'ON' : 'OFF'}`;
+});
+
+el.resetBtn.addEventListener('click', () => {
+  spstOn = true;
+  el.lightSlider.value = 25;
+  el.threshSlider.value = 65;
+  el.batterySelect.value = '9.0';
+  el.baySelect.value = 'easy';
+  el.housingSelect.value = 'cardboard';
+  renderState();
+});
+
+el.themeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  renderState();
+});
+
+[el.lightSlider, el.threshSlider, el.batterySelect, el.baySelect, el.housingSelect].forEach((input) =>
+  input.addEventListener('input', renderState)
+);
+
+document.querySelectorAll('.assess-chk').forEach((chk) =>
+  chk.addEventListener('change', updateChecks)
+);
+
+renderState();
+updateChecks();
+</script>
+</body>
+</html>

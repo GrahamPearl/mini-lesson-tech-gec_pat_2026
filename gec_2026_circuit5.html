@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grade 9 GEC Technology — IntrusionGuard: +V Rail Switch &amp; Component Lab</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-alt: #0b1220;
+    --border: #334155;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --led-off: #334155;
+  }
+  body.light {
+    --bg: #f1f5f9;
+    --panel: #ffffff;
+    --panel-alt: #f8fafc;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #0284c7;
+    --led-off: #cbd5e1;
+  }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 1.05rem; }
+  header .grade { color: var(--accent); font-weight: 800; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  button, select {
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button { background: var(--accent); color: #0f172a; border: none; }
+  button.secondary, select {
+    background: var(--panel-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button.spst-closed { background: var(--good); color: #052e16; }
+  button.spst-open { background: var(--bad); color: #ffffff; }
+
+  main {
+    display: grid;
+    grid-template-columns: 1.22fr 0.78fr;
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+  }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+  .col { display: flex; flex-direction: column; gap: 16px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 15px;
+  }
+  .card h2 {
+    margin: 0 0 10px 0;
+    font-size: 0.96rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .wiring-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+  .port-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .port-btn {
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+  }
+  .port-btn.selected { outline: 2px solid var(--warn); border-color: var(--warn); }
+  .port-btn.pos { border-color: #ef4444; color: #ef4444; }
+  .port-btn.neg { border-color: #38bdf8; color: #38bdf8; }
+
+  svg#circuitSvg {
+    width: 100%;
+    height: 380px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: block;
+  }
+
+  .alert-box {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--panel-alt);
+  }
+  .alert-box.ok { border-color: var(--good); color: var(--good); }
+  .alert-box.err { border-color: var(--bad); color: var(--bad); }
+  .alert-box.warn { border-color: var(--warn); color: var(--warn); }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .metric {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.79rem;
+  }
+  .metric span { display: block; color: var(--muted); font-size: 0.71rem; }
+  .metric strong { font-size: 0.88rem; }
+
+  .flash-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--led-off);
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  .flash-dot.on {
+    background: var(--bad);
+    box-shadow: 0 0 12px var(--bad);
+  }
+
+  .ctrl {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .ctrl-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .mono { font-family: monospace; color: var(--accent); }
+  .hint { font-size: 0.74rem; color: var(--muted); line-height: 1.35; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  .wire-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    font-size: 0.74rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip button { padding: 1px 6px; font-size: 0.68rem; background: var(--bad); color: #fff; }
+  a.ref { color: var(--accent); font-size: 0.8rem; text-decoration: none; font-weight: 600; }
+  a.ref:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="grade">Grade 9 GEC Technology</span> // IntrusionGuard: +V Rail Switch &amp; Component Lab</h1>
+  </div>
+  <div class="header-actions">
+    <button id="spstBtn" class="spst-closed">+V Rail SPST: CLOSED (ON)</button>
+    <button id="soundBtn" class="secondary">Buzzer Audio: ON</button>
+    <button id="resetBtn" class="secondary">Reset Lab</button>
+    <button id="themeBtn" class="secondary">Light / Dark</button>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card">
+      <h2>
+        <span>Schematic Symbols, +V Rail SPST Switch &amp; Battery Wiring</span>
+        <span class="mono" id="statusBadge">READY</span>
+      </h2>
+
+      <div class="wiring-toolbar">
+        <div><strong>Battery Leads:</strong> Click 2 terminals to connect/disconnect:</div>
+        <div class="port-pills" id="portPills"></div>
+        <div style="display:flex; gap:6px;">
+          <button id="autoWireBtn" class="secondary">Valid Battery Wiring</button>
+          <button id="clearWireBtn" class="secondary">Clear Battery Wires</button>
+        </div>
+      </div>
+
+      <svg id="circuitSvg" viewBox="0 0 840 380" aria-label="Schematic with battery, +V rail SPST switch, resistors, LDR, transistor driver, LED, and buzzer">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="840" height="380" fill="url(#grid)" />
+
+        <!-- Battery Symbol (Left) -->
+        <g id="batSym">
+          <text x="42" y="40" fill="currentColor" font-size="12" font-weight="800">BATTERY (&le;9V)</text>
+          <line x1="68" y1="115" x2="124" y2="115" stroke="#ef4444" stroke-width="4" />
+          <text x="132" y="119" fill="#ef4444" font-size="13" font-weight="800">+ (POS)</text>
+
+          <line x1="80" y1="142" x2="112" y2="142" stroke="#38bdf8" stroke-width="5" />
+          <text x="132" y="146" fill="#38bdf8" font-size="13" font-weight="800">- (NEG)</text>
+
+          <line x1="68" y1="169" x2="124" y2="169" stroke="#ef4444" stroke-width="4" />
+          <line x1="80" y1="196" x2="112" y2="196" stroke="#38bdf8" stroke-width="5" />
+        </g>
+
+        <!-- MODEL +V RAIL with SPST SWITCH directly along the positive line -->
+        <text x="255" y="54" fill="#ef4444" font-size="11" font-weight="700">MODEL +V RAIL (FROM BATTERY +) — SPST SWITCH IN SERIES</text>
+        <!-- Segment before SPST -->
+        <line x1="255" y1="72" x2="345" y2="72" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="6,4" />
+        <!-- SPST Switch along +V rail -->
+        <circle cx="348" cy="72" r="4.5" fill="currentColor" />
+        <circle cx="392" cy="72" r="4.5" fill="currentColor" />
+        <line id="railSwitchBlade" x1="348" y1="72" x2="392" y2="72" stroke="#22c55e" stroke-width="3.5" />
+        <text x="342" y="92" fill="currentColor" font-size="10" font-weight="700">SPST (+V)</text>
+        <!-- Segment after SPST to branches -->
+        <line id="postSwitchRail" x1="395" y1="72" x2="775" y2="72" stroke="#ef4444" stroke-width="3.5" stroke-dasharray="6,4" />
+
+        <!-- MODEL - / 0V RAIL -->
+        <text x="255" y="344" fill="#38bdf8" font-size="11" font-weight="700">MODEL - / 0V RETURN RAIL (TO BATTERY -)</text>
+        <line x1="255" y1="322" x2="775" y2="322" stroke="#38bdf8" stroke-width="3.5" stroke-dasharray="6,4" />
+
+        <!-- Branch 1: LDR + Bias Resistor R2 (x=455) -->
+        <line x1="455" y1="72" x2="455" y2="112" stroke="currentColor" stroke-width="2.5" />
+        <rect x="443" y="112" width="24" height="54" rx="3" fill="none" stroke="#f59e0b" stroke-width="2.6" />
+        <text x="474" y="138" fill="#f59e0b" font-size="10" font-weight="700">LDR</text>
+        <!-- Light arrows into LDR -->
+        <line x1="412" y1="124" x2="439" y2="134" stroke="#f59e0b" stroke-width="2" />
+        <polygon points="441,135 433,135 436,129" fill="#f59e0b" />
+        <line x1="412" y1="144" x2="439" y2="154" stroke="#f59e0b" stroke-width="2" />
+        <polygon points="441,155 433,155 436,149" fill="#f59e0b" />
+
+        <!-- Bias Resistor R2 symbol below LDR -->
+        <line x1="455" y1="166" x2="455" y2="200" stroke="currentColor" stroke-width="2.5" />
+        <rect x="445" y="200" width="20" height="42" fill="none" stroke="currentColor" stroke-width="2.2" />
+        <text x="472" y="224" fill="currentColor" font-size="10" font-weight="700" id="r2SymLabel">R2 (10k)</text>
+        <line x1="455" y1="242" x2="455" y2="322" stroke="currentColor" stroke-width="2.5" />
+
+        <!-- Optional Driver Stage Indicator (x=545) -->
+        <g id="driverGroup">
+          <rect x="520" y="148" width="54" height="44" rx="6" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="4,2" />
+          <text x="525" y="167" fill="#a855f7" font-size="9" font-weight="800">DRIVER</text>
+          <text x="525" y="180" fill="currentColor" font-size="9" id="driverModeText">DIRECT</text>
+        </g>
+
+        <!-- Branch 2: Current-Limiting Resistor R1 + Exterior Flashing LED (x=630) -->
+        <line x1="630" y1="72" x2="630" y2="105" stroke="currentColor" stroke-width="2.5" />
+        <rect x="620" y="105" width="20" height="38" fill="none" stroke="currentColor" stroke-width="2.2" />
+        <text x="646" y="128" fill="currentColor" font-size="10" font-weight="700" id="r1SymLabel">R1 (330R)</text>
+        <line x1="630" y1="143" x2="630" y2="175" stroke="currentColor" stroke-width="2.5" />
+        <!-- LED symbol -->
+        <polygon points="616,175 644,175 630,201" fill="none" stroke="currentColor" stroke-width="2.5" />
+        <line x1="615" y1="201" x2="645" y2="201" stroke="currentColor" stroke-width="3" />
+        <line x1="630" y1="201" x2="630" y2="322" stroke="currentColor" stroke-width="2.5" />
+        <!-- Outward flash rays -->
+        <line x1="648" y1="180" x2="668" y2="170" stroke="#ef4444" stroke-width="2" />
+        <line x1="650" y1="193" x2="670" y2="183" stroke="#ef4444" stroke-width="2" />
+        <circle id="svgLedHalo" cx="630" cy="188" r="18" fill="rgba(239,68,68,0)" />
+
+        <!-- Branch 3: Buzzer Symbol (x=745) -->
+        <line x1="745" y1="72" x2="745" y2="155" stroke="currentColor" stroke-width="2.5" />
+        <rect x="725" y="155" width="40" height="44" rx="6" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+        <text x="733" y="182" fill="currentColor" font-size="11" font-weight="800">BZ</text>
+        <line x1="745" y1="199" x2="745" y2="322" stroke="currentColor" stroke-width="2.5" />
+        <path d="M 771 165 Q 780 177 771 189" fill="none" stroke="#f59e0b" stroke-width="2" />
+        <path d="M 778 159 Q 791 177 778 195" fill="none" stroke="#f59e0b" stroke-width="2" />
+
+        <g id="wiresLayer"></g>
+        <g id="chargeLayer"></g>
+        <g id="nodesLayer"></g>
+      </svg>
+
+      <div class="alert-box" id="statusBox">Evaluating circuit...</div>
+      <div class="wire-chips" id="wireChips"></div>
+
+      <div class="metrics-grid">
+        <div class="metric">
+          <span>Exterior Flashing LED</span>
+          <strong><span class="flash-dot" id="ledDot"></span><span id="ledText">OFF</span></strong>
+        </div>
+        <div class="metric">
+          <span>Audible Buzzer</span>
+          <strong id="buzzerText">SILENT</strong>
+        </div>
+        <div class="metric">
+          <span>Effective Trigger Point</span>
+          <strong id="effThreshText">65%</strong>
+        </div>
+        <div class="metric">
+          <span>LED Brightness</span>
+          <strong id="brightnessText">0%</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span>Experimental Assessment Prompts for Students</span></h2>
+      <div class="hint" style="margin-bottom:8px;">
+        Use these structured experiments in class so students test cause-and-effect rather than guessing:
+      </div>
+      <ul class="hint" style="margin:0; padding-left:18px; display:flex; flex-direction:column; gap:6px;">
+        <li><strong>Experiment 1 — +V Rail Isolation:</strong> With light above threshold and valid battery wires, toggle the <code>+V Rail SPST</code> between <code>CLOSED</code> and <code>OPEN</code>. Record where charge stops and why neither output works when open.</li>
+        <li><strong>Experiment 2 — Resistor Impact (R1 &amp; R2):</strong> Increase <code>R1</code> (LED series resistor) from <code>100 &Omega;</code> to <code>1 k&Omega;</code> and observe LED brightness; then change <code>R2</code> (LDR bias resistor) and observe how the effective trigger point shifts.</li>
+        <li><strong>Experiment 3 — Accessibility &amp; Flash Rate:</strong> Compare slow flashing (<code>1 Hz</code>) vs. faster flashing (<code>4 Hz</code>) alongside the buzzer—which rate is easiest to notice without being harsh?</li>
+        <li><strong>Experiment 4 — Driver Stage &amp; Power Limits:</strong> Switch between <code>Direct</code> and <code>Transistor Driver</code> across <code>4.5V</code>, <code>6V</code>, and <code>9V</code> battery packs (keeping power at or below <code>9V</code>) and note when outputs remain steady vs. drop out.</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- Right Column: Control Variables & Additional Components -->
+  <aside class="card">
+    <h2><span>Control Variables &amp; Components</span></h2>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="lightSlider">Light on Exterior LDR</label>
+        <span class="mono" id="lightVal">75%</span>
+      </div>
+      <input id="lightSlider" type="range" min="0" max="100" value="75" />
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="threshSlider">Base Trigger Threshold</label>
+        <span class="mono" id="threshVal">65%</span>
+      </div>
+      <input id="threshSlider" type="range" min="20" max="90" value="65" />
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="flashHzSlider">LED Flash Frequency</label>
+        <span class="mono" id="flashHzVal">2.0 Hz</span>
+      </div>
+      <input id="flashHzSlider" type="range" min="1" max="5" step="0.5" value="2" />
+      <div class="hint">Controls how fast the exterior LED flashes to alert people with different abilities.</div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="r1Select">LED Series Resistor (R1)</label>
+      </div>
+      <select id="r1Select" style="width:100%;">
+        <option value="100">100 &Omega; (Brighter LED, Higher Current)</option>
+        <option value="330" selected>330 &Omega; (Standard Safe Current Limit)</option>
+        <option value="1000">1 k&Omega; (Dimmer LED, Lower Current)</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="r2Select">LDR Bias Resistor (R2)</label>
+      </div>
+      <select id="r2Select" style="width:100%;">
+        <option value="4700">4.7 k&Omega; (Higher Light Needed to Trip)</option>
+        <option value="10000" selected>10 k&Omega; (Balanced Sensitivity)</option>
+        <option value="47000">47 k&Omega; (More Sensitive to Light)</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="driverSelect">Output Switching Stage</label>
+      </div>
+      <select id="driverSelect" style="width:100%;">
+        <option value="direct" selected>Direct Sensor-to-Output Path</option>
+        <option value="transistor">Transistor Driver Stage (Isolated Load)</option>
+      </select>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label for="battSelect">Battery Supply (&le; 9V Max)</label>
+      </div>
+      <select id="battSelect" style="width:100%;">
+        <option value="9.0" selected>9.0V Battery (Max Safe Limit)</option>
+        <option value="6.0">6.0V Pack (4x AA)</option>
+        <option value="4.5">4.5V Pack (3x AA)</option>
+        <option value="3.0">3.0V Depleted (Too Low)</option>
+      </select>
+    </div>
+
+    <div style="margin-top: 8px;">
+      <a class="ref" href="https://en.wikipedia.org/wiki/Electronic_symbol" target="_blank" rel="noopener">
+        Reference: Electronic Circuit Symbols ↗
+      </a>
+    </div>
+  </aside>
+</main>
+
+<script>
+const PORTS = [
+  { id: 'bat_pos', label: 'Battery (+)', x: 124, y: 115, color: '#ef4444' },
+  { id: 'bat_neg', label: 'Battery (-)', x: 112, y: 196, color: '#38bdf8' },
+  { id: 'rail_pos', label: 'Model +V Rail', x: 262, y: 72, color: '#ef4444' },
+  { id: 'rail_neg', label: 'Model - / 0V Rail', x: 262, y: 322, color: '#38bdf8' },
+];
+
+let wires = [
+  { from: 'bat_pos', to: 'rail_pos' },
+  { from: 'bat_neg', to: 'rail_neg' },
+];
+
+let selectedPort = null;
+let spstClosed = true;
+let audioEnabled = true;
+let ledPulseState = false;
+let chargePhase = 0;
+let lastFlashToggle = performance.now();
+let lastBeep = 0;
+let audioCtx = null;
+
+const el = {
+  spstBtn: document.getElementById('spstBtn'),
+  soundBtn: document.getElementById('soundBtn'),
+  resetBtn: document.getElementById('resetBtn'),
+  themeBtn: document.getElementById('themeBtn'),
+  autoWireBtn: document.getElementById('autoWireBtn'),
+  clearWireBtn: document.getElementById('clearWireBtn'),
+  portPills: document.getElementById('portPills'),
+  wireChips: document.getElementById('wireChips'),
+  wiresLayer: document.getElementById('wiresLayer'),
+  chargeLayer: document.getElementById('chargeLayer'),
+  nodesLayer: document.getElementById('nodesLayer'),
+  railSwitchBlade: document.getElementById('railSwitchBlade'),
+  svgLedHalo: document.getElementById('svgLedHalo'),
+  statusBadge: document.getElementById('statusBadge'),
+  statusBox: document.getElementById('statusBox'),
+  ledDot: document.getElementById('ledDot'),
+  ledText: document.getElementById('ledText'),
+  buzzerText: document.getElementById('buzzerText'),
+  effThreshText: document.getElementById('effThreshText'),
+  brightnessText: document.getElementById('brightnessText'),
+  r1SymLabel: document.getElementById('r1SymLabel'),
+  r2SymLabel: document.getElementById('r2SymLabel'),
+  driverModeText: document.getElementById('driverModeText'),
+  lightSlider: document.getElementById('lightSlider'),
+  threshSlider: document.getElementById('threshSlider'),
+  flashHzSlider: document.getElementById('flashHzSlider'),
+  r1Select: document.getElementById('r1Select'),
+  r2Select: document.getElementById('r2Select'),
+  driverSelect: document.getElementById('driverSelect'),
+  battSelect: document.getElementById('battSelect'),
+};
+
+function getPort(id) {
+  return PORTS.find((p) => p.id === id);
+}
+
+function togglePortConnection(portId) {
+  if (!selectedPort) {
+    selectedPort = portId;
+    renderPortPills();
+    return;
+  }
+  if (selectedPort === portId) {
+    selectedPort = null;
+    renderPortPills();
+    return;
+  }
+  const idx = wires.findIndex(
+    (w) => (w.from === selectedPort && w.to === portId) || (w.from === portId && w.to === selectedPort)
+  );
+  if (idx >= 0) wires.splice(idx, 1);
+  else wires.push({ from: selectedPort, to: portId });
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+}
+
+function renderPortPills() {
+  el.portPills.innerHTML = '';
+  PORTS.forEach((p) => {
+    const b = document.createElement('button');
+    b.className = `port-btn ${p.id.includes('pos') ? 'pos' : 'neg'} ${selectedPort === p.id ? 'selected' : ''}`;
+    b.textContent = p.label;
+    b.addEventListener('click', () => togglePortConnection(p.id));
+    el.portPills.appendChild(b);
+  });
+}
+
+function renderWireChips() {
+  el.wireChips.innerHTML = '';
+  if (wires.length === 0) {
+    el.wireChips.innerHTML = '<span class="hint">No battery wires connected.</span>';
+    return;
+  }
+  wires.forEach((w, idx) => {
+    const a = getPort(w.from);
+    const b = getPort(w.to);
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${a.label} &harr; ${b.label}`;
+    const rm = document.createElement('button');
+    rm.textContent = 'x';
+    rm.addEventListener('click', () => {
+      wires.splice(idx, 1);
+      renderAll();
+    });
+    chip.appendChild(rm);
+    el.wireChips.appendChild(chip);
+  });
+}
+
+function playBuzzerTone() {
+  if (!audioEnabled) return;
+  const now = performance.now();
+  if (now - lastBeep < 350) return;
+  lastBeep = now;
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.045, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.13);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.14);
+  } catch (_) {}
+}
+
+function checkBatteryWiring() {
+  const linked = (u, v) =>
+    wires.some((w) => (w.from === u && w.to === v) || (w.from === v && w.to === u));
+  const okPos = linked('bat_pos', 'rail_pos');
+  const okNeg = linked('bat_neg', 'rail_neg');
+  const rev = linked('bat_pos', 'rail_neg') || linked('bat_neg', 'rail_pos');
+
+  if (rev) {
+    return { valid: false, badge: 'POLARITY REVERSED', cls: 'err', msg: 'Battery (+) and (-) are reversed! Connect (+) to Model +V Rail and (-) to Model - / 0V Rail.' };
+  }
+  if (!okPos && !okNeg) {
+    return { valid: false, badge: 'UNWIRED BATTERY', cls: 'warn', msg: 'Connect Battery (+) to Model +V Rail and Battery (-) to Model - / 0V Rail.' };
+  }
+  if (!okPos) {
+    return { valid: false, badge: 'MISSING + WIRE', cls: 'warn', msg: 'Connect Battery (+) to Model +V Rail.' };
+  }
+  if (!okNeg) {
+    return { valid: false, badge: 'MISSING - WIRE', cls: 'warn', msg: 'Connect Battery (-) to Model - / 0V Rail.' };
+  }
+  return { valid: true, badge: 'WIRING VALID', cls: 'ok', msg: 'Battery (+) and (-) wired properly. Use the +V Rail SPST switch to turn the alarm ON or OFF.' };
+}
+
+function renderAll() {
+  renderWireChips();
+
+  const light = Number(el.lightSlider.value);
+  const baseThresh = Number(el.threshSlider.value);
+  const flashHz = Number(el.flashHzSlider.value);
+  const r1 = Number(el.r1Select.value);
+  const r2 = Number(el.r2Select.value);
+  const driver = el.driverSelect.value;
+  const volts = Number(el.battSelect.value);
+
+  document.getElementById('lightVal').textContent = `${light}%`;
+  document.getElementById('threshVal').textContent = `${baseThresh}%`;
+  document.getElementById('flashHzVal').textContent = `${flashHz.toFixed(1)} Hz`;
+
+  el.r1SymLabel.textContent = r1 >= 1000 ? `R1 (1k)` : `R1 (${r1}R)`;
+  el.r2SymLabel.textContent = r2 >= 1000 ? `R2 (${Math.round(r2 / 1000)}k)` : `R2 (${r2}R)`;
+  el.driverModeText.textContent = driver === 'transistor' ? 'TRANSISTOR' : 'DIRECT';
+
+  // R2 bias shifts effective trigger threshold slightly (-8% at 47k, +8% at 4.7k)
+  const biasShift = r2 <= 4700 ? 8 : r2 >= 47000 ? -8 : 0;
+  const effThresh = Math.max(10, Math.min(95, baseThresh + biasShift));
+  el.effThreshText.textContent = `${effThresh}%`;
+
+  // +V Rail SPST Switch visual
+  if (spstClosed) {
+    el.railSwitchBlade.setAttribute('x1', '348');
+    el.railSwitchBlade.setAttribute('y1', '72');
+    el.railSwitchBlade.setAttribute('x2', '392');
+    el.railSwitchBlade.setAttribute('y2', '72');
+    el.railSwitchBlade.setAttribute('stroke', '#22c55e');
+    el.spstBtn.textContent = '+V Rail SPST: CLOSED (ON)';
+    el.spstBtn.className = 'spst-closed';
+  } else {
+    el.railSwitchBlade.setAttribute('x1', '348');
+    el.railSwitchBlade.setAttribute('y1', '72');
+    el.railSwitchBlade.setAttribute('x2', '388');
+    el.railSwitchBlade.setAttribute('y2', '50');
+    el.railSwitchBlade.setAttribute('stroke', '#ef4444');
+    el.spstBtn.textContent = '+V Rail SPST: OPEN (OFF)';
+    el.spstBtn.className = 'spst-open';
+  }
+
+  const wireCheck = checkBatteryWiring();
+  const powerOk = volts >= 4.5 && volts <= 9.0;
+  const railEnergized = wireCheck.valid && spstClosed && powerOk;
+  const alarmActive = railEnergized && light >= effThresh;
+
+  // Brightness scaled by R1 resistance & supply voltage
+  const brightnessPct = alarmActive
+    ? Math.max(20, Math.min(100, Math.round((volts / 9.0) * (330 / r1) * 85)))
+    : 0;
+  el.brightnessText.textContent = `${brightnessPct}%`;
+
+  if (!wireCheck.valid) {
+    el.statusBadge.textContent = wireCheck.badge;
+    el.statusBox.className = `alert-box ${wireCheck.cls}`;
+    el.statusBox.textContent = wireCheck.msg;
+  } else if (!spstClosed) {
+    el.statusBadge.textContent = '+V SWITCH OPEN (OFF)';
+    el.statusBox.className = 'alert-box warn';
+    el.statusBox.textContent = '+V Rail SPST Switch is OPEN: positive supply to the circuit is broken, so alarm and buzzer cannot run.';
+  } else if (!powerOk) {
+    el.statusBadge.textContent = 'LOW BATTERY VOLTAGE';
+    el.statusBox.className = 'alert-box err';
+    el.statusBox.textContent = `Battery voltage (${volts.toFixed(1)}V) is too low for reliable alarm operation.`;
+  } else if (alarmActive) {
+    el.statusBadge.textContent = 'INTRUSION ALARM ACTIVE';
+    el.statusBox.className = 'alert-box err';
+    el.statusBox.textContent = `Light (${light}%) >= Effective Threshold (${effThresh}%): Flashing LED and Buzzer active!`;
+  } else {
+    el.statusBadge.textContent = 'ARMED (+V CLOSED)';
+    el.statusBox.className = 'alert-box ok';
+    el.statusBox.textContent = `+V Rail SPST is CLOSED and wiring is valid. Increase LDR light to >= ${effThresh}% to trigger alarm.`;
+  }
+
+  if (alarmActive) {
+    el.ledDot.classList.toggle('on', ledPulseState);
+    el.ledText.textContent = ledPulseState ? `FLASHING (${brightnessPct}%)` : 'FLASH OFF';
+    el.buzzerText.textContent = 'SOUNDING';
+    const alpha = ledPulseState ? (brightnessPct / 100) * 0.55 : 0.04;
+    el.svgLedHalo.setAttribute('fill', `rgba(239,68,68,${alpha.toFixed(2)})`);
+    if (ledPulseState) playBuzzerTone();
+  } else {
+    el.ledDot.classList.remove('on');
+    el.ledText.textContent = !spstClosed ? 'OFF (+V OPEN)' : 'STANDBY';
+    el.buzzerText.textContent = !spstClosed ? 'OFF (+V OPEN)' : 'SILENT';
+    el.svgLedHalo.setAttribute('fill', 'rgba(239,68,68,0)');
+  }
+
+  // Draw battery wires + animated charge flow
+  el.wiresLayer.innerHTML = '';
+  el.chargeLayer.innerHTML = '';
+  el.nodesLayer.innerHTML = '';
+
+  wires.forEach((w) => {
+    const p1 = getPort(w.from);
+    const p2 = getPort(w.to);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', p1.x);
+    line.setAttribute('y1', p1.y);
+    line.setAttribute('x2', p2.x);
+    line.setAttribute('y2', p2.y);
+    line.setAttribute('stroke', p1.color);
+    line.setAttribute('stroke-width', '4');
+    el.wiresLayer.appendChild(line);
+
+    if (wireCheck.valid && powerOk) {
+      // + wire only carries charge when SPST is closed; - return wire carries when alarm/load is active
+      const wireActive = (w.from === 'bat_pos' || w.to === 'bat_pos') ? spstClosed : (spstClosed && (alarmActive || light > 15));
+      if (wireActive) {
+        for (let i = 0; i < 4; i++) {
+          const t = (chargePhase + i * 0.25) % 1;
+          const cx = p1.x + (p2.x - p1.x) * t;
+          const cy = p1.y + (p2.y - p1.y) * t;
+          const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          c.setAttribute('cx', cx);
+          c.setAttribute('cy', cy);
+          c.setAttribute('r', '4.5');
+          c.setAttribute('fill', '#facc15');
+          el.chargeLayer.appendChild(c);
+        }
+      }
+    }
+  });
+
+  // Charge along +V rail after SPST when closed
+  if (railEnergized) {
+    for (let i = 0; i < 4; i++) {
+      const t = (chargePhase + i * 0.25) % 1;
+      const cx = 395 + (775 - 395) * t;
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', cx);
+      c.setAttribute('cy', 72);
+      c.setAttribute('r', '4');
+      c.setAttribute('fill', alarmActive ? '#ef4444' : '#facc15');
+      el.chargeLayer.appendChild(c);
+    }
+  }
+
+  PORTS.forEach((p) => {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', p.x);
+    circle.setAttribute('cy', p.y);
+    circle.setAttribute('r', selectedPort === p.id ? '9' : '7');
+    circle.setAttribute('fill', p.color);
+    circle.setAttribute('stroke', selectedPort === p.id ? '#facc15' : '#ffffff');
+    circle.setAttribute('stroke-width', '2.5');
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('click', () => togglePortConnection(p.id));
+    el.nodesLayer.appendChild(circle);
+  });
+}
+
+function tick(now) {
+  const hz = Number(el.flashHzSlider.value);
+  const halfPeriodMs = 1000 / (hz * 2);
+  if (now - lastFlashToggle >= halfPeriodMs) {
+    ledPulseState = !ledPulseState;
+    lastFlashToggle = now;
+  }
+  chargePhase = (chargePhase + 0.015) % 1;
+  renderAll();
+  requestAnimationFrame(tick);
+}
+
+el.spstBtn.addEventListener('click', () => {
+  spstClosed = !spstClosed;
+  renderAll();
+});
+
+el.soundBtn.addEventListener('click', () => {
+  audioEnabled = !audioEnabled;
+  el.soundBtn.textContent = `Buzzer Audio: ${audioEnabled ? 'ON' : 'OFF'}`;
+});
+
+el.autoWireBtn.addEventListener('click', () => {
+  wires = [
+    { from: 'bat_pos', to: 'rail_pos' },
+    { from: 'bat_neg', to: 'rail_neg' },
+  ];
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+});
+
+el.clearWireBtn.addEventListener('click', () => {
+  wires = [];
+  selectedPort = null;
+  renderPortPills();
+  renderAll();
+});
+
+el.resetBtn.addEventListener('click', () => {
+  wires = [
+    { from: 'bat_pos', to: 'rail_pos' },
+    { from: 'bat_neg', to: 'rail_neg' },
+  ];
+  selectedPort = null;
+  spstClosed = true;
+  el.lightSlider.value = 75;
+  el.threshSlider.value = 65;
+  el.flashHzSlider.value = 2;
+  el.r1Select.value = '330';
+  el.r2Select.value = '10000';
+  el.driverSelect.value = 'direct';
+  el.battSelect.value = '9.0';
+  renderPortPills();
+  renderAll();
+});
+
+el.themeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  renderAll();
+});
+
+[el.lightSlider, el.threshSlider, el.flashHzSlider, el.r1Select, el.r2Select, el.driverSelect, el.battSelect].forEach((ctrl) =>
+  ctrl.addEventListener('input', renderAll)
+);
+
+renderPortPills();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
